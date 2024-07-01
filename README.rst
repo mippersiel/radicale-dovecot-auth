@@ -40,15 +40,18 @@ Ensure that user running radicale has read and write permissions to the socket c
         [auth]
         type = radicale_dovecot_auth
 
+        # Unix socket
         auth_socket = path_to_socket
 
-        # or tcp based
+        # OR
+
+        # TCP based
         auth_host = localhost
         auth_port = 10000
 
 You may need to add a new auth_ socket to dovecot:
 
-.. _auth: https://wiki.dovecot.org/Services#auth
+.. _auth: https://doc.dovecot.org/configuration_manual/authentication/
 
 .. code::
 
@@ -59,7 +62,7 @@ You may need to add a new auth_ socket to dovecot:
                 group = postfix
         }
 
-Or tcp based:
+Or TCP based:
 
 .. code::
 
@@ -68,12 +71,19 @@ Or tcp based:
                 port = 10000
         }
 
+You may need to enable `AF_PACKET` in your service file depending on your distribution. Here is an example override file.
+
+.. code::
+
+    [Service]
+    RestrictAddressFamilies=AF_PACKET AF_NETLINK AF_UNIX
+
 
 Authentication Backend
 ######################
 DovecotAuth provides authentication against a Dovecot authentication
 service using the PLAIN mechanism.
 
-Only version 1.1 as described in the `Dovecot Wiki`_
+Only version 1.2 as described in the `Dovecot Developer Manual`_
 
-.. _Dovecot Wiki: https://wiki2.dovecot.org/Design/AuthProtocol
+.. _Dovecot Developer Manual: https://doc.dovecot.org/developer_manual/design/auth_protocol/#dovecot-auth-protocol
