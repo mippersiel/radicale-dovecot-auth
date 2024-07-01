@@ -15,10 +15,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from radicale.auth import BaseAuth
-
+from radicale import logger
 from radicale_dovecot_auth.dovecot_auth import DovecotAuth
-from radicale_dovecot_auth.__about__ import *
-
 from contextlib import suppress
 
 
@@ -40,25 +38,33 @@ class Auth(BaseAuth):
     port = 10000
     """
 
-    def get_connection(self):
-        kwargs = {}
+    def login(self, login, password):
+        kwargs = dict()
 
         with suppress(KeyError):
-            kwargs['socket_path'] = self.configuration.get('auth', 'auth_socket')
-            kwargs['host'] = self.configuration.get('auth', 'auth_host')
-            kwargs['port'] = self.configuration.get('auth', 'auth_port')
+            kwargs["socket_path"] = self.configuration.get("auth", "auth_socket")
+        with suppress(KeyError):
+            kwargs["host"] = self.configuration.get("auth", "auth_host")
+            kwargs["port"] = self.configuration.get("auth", "auth_port")
 
-        if not ('socket_path' in kwargs or {'host', 'port'} <= set(kwargs)):
-            raise RuntimeError('auth_socket path or auth_host and auth_port must be set')
+        if "socket_path" in kwargs:
+            if "host" and "port" in kwargs:
+                logger.warning(
+                    "dovecot_auth ambiguous configuration: both socket and TCP configuration present"
+                )
+            logger.info(
+                "dovecot_auth using unix socket {}".format(kwargs["socket_path"])
+            )
+        elif "host" and "port" in kwargs:
+            logger.info(
+                "dovecot_auth using TCP socket {}:{}".format(
+                    kwargs["host"], kwargs["port"]
+                )
+            )
+        else:
+            raise RuntimeError(
+                "auth_socket path or auth_host and auth_port must be set"
+            )
 
-        return DovecotAuth(SERVICE, **kwargs)
-
-    def is_authenticated(self, user, password):
-        return self.is_authenticated2(None, user, password)
-
-    def is_authenticated2(self, login, user, password):
-        conn = self.get_connection()
-        return conn.authenticate(user, password)
-
-    def login(self, login, password):
-        return login if self.is_authenticated(login, password) else ""
+        auth = DovecotAuth(SERVICE, **kwargs)
+        return login if auth.authenticate(login, password) else ""
